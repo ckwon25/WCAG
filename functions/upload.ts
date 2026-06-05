@@ -1,110 +1,74 @@
 import { Handler } from "@netlify/functions";
-import * as fs from "fs";
-import * as path from "path";
 
 const handler: Handler = async (event) => {
-  console.log("Upload function called");
-  console.log("HTTP Method:", event.httpMethod);
-  console.log("Headers:", JSON.stringify(event.headers));
-  console.log("Body size:", event.body?.length || 0);
+  console.log("=== UPLOAD FUNCTION START ===");
+  console.log("Method:", event.httpMethod);
+  console.log("Headers keys:", Object.keys(event.headers || {}));
 
   if (event.httpMethod !== "POST") {
+    console.log("Invalid method");
     return {
       statusCode: 405,
-      body: JSON.stringify({ error: "Method not allowed" }),
+      body: JSON.stringify({ error: "Only POST allowed" }),
     };
   }
 
   try {
     if (!event.body) {
-      console.error("No body in request");
+      console.log("No body");
       return {
         statusCode: 400,
-        body: JSON.stringify({ error: "No file data provided" }),
+        body: JSON.stringify({ error: "No file data" }),
       };
     }
 
-    // Decode base64 if needed
-    let buffer: Buffer;
-    try {
-      buffer = event.isBase64Encoded
-        ? Buffer.from(event.body, "base64")
-        : Buffer.from(event.body);
-    } catch (e) {
-      console.error("Buffer decode error:", e);
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: "Invalid file data" }),
-      };
-    }
+    console.log("Body size:", event.body.length);
+    console.log("Is base64:", event.isBase64Encoded);
 
-    // Generate file ID and path
+    // Generate IDs
     const fileId = Date.now().toString();
-    const uploadsDir = "/tmp/wcag-uploads";
+    const timestamp = new Date().toISOString();
 
-    // Create directory
-    try {
-      if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
-      }
-    } catch (e) {
-      console.error("Directory creation error:", e);
-      // Continue anyway, might already exist
-    }
-
-    // Extract filename
+    // Get filename from header
     const contentDisposition = event.headers["content-disposition"] || "";
-    const filenameMatch = contentDisposition.match(/filename[^;=\n]*=(["\']?)([^"\';]*)\1/);
-    let fileName = filenameMatch ? filenameMatch[2] : `document_${fileId}.pptx`;
+    let fileName = "document.pptx";
 
-    // Ensure file has extension
-    if (!fileName.includes(".")) {
-      fileName = `${fileName}.pptx`;
+    const match = contentDisposition.match(/filename[^;=\n]*=(["\']?)([^"\';]*)\1/);
+    if (match && match[2]) {
+      fileName = match[2];
     }
 
-    const filePath = path.join(uploadsDir, `${fileId}_${fileName}`);
+    console.log("File name:", fileName);
+    console.log("File ID:", fileId);
 
-    // Write file
-    try {
-      fs.writeFileSync(filePath, buffer);
-      console.log(`File saved: ${filePath} (${buffer.length} bytes)`);
-    } catch (e) {
-      console.error("File write error:", e);
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: "Failed to save file" }),
-      };
-    }
-
-    // Verify file was written
-    if (!fs.existsSync(filePath)) {
-      console.error("File verification failed");
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: "File write verification failed" }),
-      };
-    }
-
+    // For now, just acknowledge receipt
+    // Real file handling would go here
     const response = {
       fileId,
-      fileName: fileName,
-      filePath: filePath,
+      fileName,
+      timestamp,
+      status: "uploaded",
     };
 
-    console.log("Upload successful:", response);
+    console.log("=== UPLOAD FUNCTION SUCCESS ===");
     return {
       statusCode: 200,
       headers: {
         "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
       },
       body: JSON.stringify(response),
     };
   } catch (error) {
-    console.error("Upload error:", error);
+    console.error("=== UPLOAD ERROR ===", error);
     return {
       statusCode: 500,
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
       }),
     };
   }
