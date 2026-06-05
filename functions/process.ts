@@ -9,6 +9,9 @@ interface ProcessRequest {
 }
 
 const handler: Handler = async (event) => {
+  console.log("Process function called");
+  console.log("Request body:", event.body);
+
   if (event.httpMethod !== "POST") {
     return {
       statusCode: 405,
@@ -21,7 +24,10 @@ const handler: Handler = async (event) => {
       event.body || "{}"
     ) as ProcessRequest;
 
+    console.log("Processing:", { fileId, fileName, filePath });
+
     if (!fileId || !filePath) {
+      console.error("Missing required fields");
       return {
         statusCode: 400,
         body: JSON.stringify({ error: "Missing required fields" }),
@@ -30,17 +36,26 @@ const handler: Handler = async (event) => {
 
     // Verify file exists
     if (!fs.existsSync(filePath)) {
+      console.error("File not found:", filePath);
       return {
         statusCode: 404,
         body: JSON.stringify({ error: "File not found" }),
       };
     }
 
-    const processedDir = "/tmp/processed";
-    fs.mkdirSync(processedDir, { recursive: true });
+    const fileStats = fs.statSync(filePath);
+    console.log(`File found: ${fileStats.size} bytes`);
 
-    // For demo: create placeholder processed files
-    // In production, this would integrate with the Python document processing
+    const processedDir = "/tmp/wcag-processed";
+    try {
+      if (!fs.existsSync(processedDir)) {
+        fs.mkdirSync(processedDir, { recursive: true });
+      }
+    } catch (e) {
+      console.error("Processed dir error:", e);
+    }
+
+    // Create 4 versions (currently copies - placeholder for actual processing)
     const versions = [
       { name: "Standard", type: "standard" },
       { name: "High Contrast", type: "high_contrast" },
@@ -52,17 +67,22 @@ const handler: Handler = async (event) => {
     const fileExt = path.extname(fileName);
 
     for (const version of versions) {
-      const versionPath = path.join(
-        processedDir,
-        `${fileId}_${version.type}${fileExt}`
-      );
+      try {
+        const versionPath = path.join(
+          processedDir,
+          `${fileId}_${version.type}${fileExt}`
+        );
 
-      // Copy and rename file as placeholder
-      fs.copyFileSync(filePath, versionPath);
-      versionPaths.push({
-        name: version.name,
-        path: versionPath,
-      });
+        // Copy file as placeholder
+        fs.copyFileSync(filePath, versionPath);
+        versionPaths.push({
+          name: version.name,
+          path: versionPath,
+        });
+        console.log(`Version created: ${versionPath}`);
+      } catch (e) {
+        console.error(`Error creating version ${version.name}:`, e);
+      }
     }
 
     // Generate compliance report
@@ -91,20 +111,29 @@ const handler: Handler = async (event) => {
       compliant: true,
     };
 
+    const response = {
+      fileId,
+      fileName,
+      report,
+      versions: versionPaths,
+    };
+
+    console.log("Processing complete:", { fileId, versions: versionPaths.length });
+
     return {
       statusCode: 200,
-      body: JSON.stringify({
-        fileId,
-        fileName,
-        report,
-        versions: versionPaths,
-      }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(response),
     };
   } catch (error) {
     console.error("Process error:", error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: String(error) }),
+      body: JSON.stringify({
+        error: error instanceof Error ? error.message : String(error),
+      }),
     };
   }
 };

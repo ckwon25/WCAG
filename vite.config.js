@@ -5,9 +5,10 @@ export default defineConfig({
     server: {
         port: 3000,
         proxy: {
-            '/api': {
+            '/.netlify/functions': {
                 target: 'http://localhost:8888',
-                changeOrigin: true
+                changeOrigin: true,
+                rewrite: function (path) { return path.replace(/^\/.netlify\/functions/, ''); }
             }
         }
     }
