@@ -3,12 +3,18 @@
   functions = "functions"
   publish = "dist"
 
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["@netlify/functions"]
+
 [dev]
-  command = "npm run dev"
+  command = "npm run dev:netlify"
   port = 3000
-  targetPort = 5173
+  targetPort = 3000
+  framework = "react"
 
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
+  from = "/*"
+  to = "/index.html"
   status = 200
+  force = false
