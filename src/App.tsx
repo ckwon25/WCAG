@@ -32,21 +32,28 @@ export default function App() {
     setError(null)
 
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-
+      // Read file and upload as binary
+      const arrayBuffer = await file.arrayBuffer()
       const uploadRes = await fetch('/.netlify/functions/upload', {
         method: 'POST',
-        body: formData
+        headers: {
+          'Content-Disposition': `attachment; filename="${file.name}"`,
+        },
+        body: arrayBuffer,
       })
 
       if (!uploadRes.ok) throw new Error('Upload failed')
       const uploadData = await uploadRes.json()
 
+      // Process the uploaded file
       const processRes = await fetch('/.netlify/functions/process', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileId: uploadData.fileId, fileName: file.name })
+        body: JSON.stringify({
+          fileId: uploadData.fileId,
+          fileName: uploadData.fileName,
+          filePath: uploadData.filePath,
+        })
       })
 
       if (!processRes.ok) throw new Error('Processing failed')
