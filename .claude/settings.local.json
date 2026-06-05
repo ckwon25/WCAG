@@ -13,7 +13,10 @@
       "Bash(git branch *)",
       "Bash(git push *)",
       "Bash(git pull *)",
-      "Bash(curl -s http://localhost:3000)"
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(curl -s http://localhost:3000/.netlify/functions/health)",
+      "Bash(ls -la \"C:\\\\Users\\\\calvi\\\\OneDrive\\\\Desktop\\\\WCAG\\\\\" | grep -i netlify)",
+      "Bash(ls -la /mnt/c/Users/calvi/OneDrive/Desktop/WCAG/ | grep -E \"netlify|\\\\.env\")"
     ]
   }
 }
