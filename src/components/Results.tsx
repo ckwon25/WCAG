@@ -16,7 +16,7 @@ export default function Results({ fileName, versions }: ResultsProps) {
         {versions.map((version) => (
           <a
             key={version.path}
-            href={`/api/download?path=${encodeURIComponent(version.path)}`}
+            href={`/.netlify/functions/download?path=${encodeURIComponent(version.path)}`}
             className="block p-6 border-2 border-indigo-200 rounded-lg hover:border-indigo-600 hover:shadow-lg transition group"
           >
             <div className="flex items-start justify-between">

@@ -35,7 +35,7 @@ export default function App() {
       const formData = new FormData()
       formData.append('file', file)
 
-      const uploadRes = await fetch('/api/upload', {
+      const uploadRes = await fetch('/.netlify/functions/upload', {
         method: 'POST',
         body: formData
       })
@@ -43,7 +43,7 @@ export default function App() {
       if (!uploadRes.ok) throw new Error('Upload failed')
       const uploadData = await uploadRes.json()
 
-      const processRes = await fetch('/api/process', {
+      const processRes = await fetch('/.netlify/functions/process', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fileId: uploadData.fileId, fileName: file.name })
